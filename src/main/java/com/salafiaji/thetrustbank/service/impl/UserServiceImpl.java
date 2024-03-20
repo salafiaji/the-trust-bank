@@ -2,6 +2,7 @@ package com.salafiaji.thetrustbank.service.impl;
 
 import com.salafiaji.thetrustbank.dto.AccountInfo;
 import com.salafiaji.thetrustbank.dto.BankResponse;
+import com.salafiaji.thetrustbank.dto.EmailDetails;
 import com.salafiaji.thetrustbank.dto.UserRequest;
 import com.salafiaji.thetrustbank.entity.Users;
 import com.salafiaji.thetrustbank.repository.UserRepository;
@@ -16,6 +17,9 @@ public class UserServiceImpl implements UserService{
 
     @Autowired
     UserRepository userRepository;
+
+    @Autowired
+    EmailService emailService;
     @Override
     public BankResponse createAccount(UserRequest userRequest) {
         /*
@@ -46,6 +50,14 @@ public class UserServiceImpl implements UserService{
                 .status("ACTIVE")
                 .build();
         Users savedUser = userRepository.save(newUser);
+        //Send email Alert
+        EmailDetails emailDetails = EmailDetails.builder()
+                .recipient(savedUser.getEmail())
+                .subject("ACCOUNT CREATION")
+                .messageBody("Congratulations your account has been successfully created.\nYour Account details: \n" +
+                    "Account Name: " + savedUser.getFirstName() + " " + savedUser.getLastName() + " " + savedUser.getOtherName() + "\nAccount Number: " + savedUser.getAccountNumber())
+                .build();
+        emailService.sendEmailAlert(emailDetails);
         return BankResponse.builder()
                 .responseCode(AccountUtils.ACCOUNT_CREATION_SUCCESS)
                 .responseMessage(AccountUtils.ACCOUNT_CREATION_MESSAGE)
