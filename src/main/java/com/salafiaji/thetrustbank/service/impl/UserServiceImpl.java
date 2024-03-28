@@ -1,9 +1,6 @@
 package com.salafiaji.thetrustbank.service.impl;
 
-import com.salafiaji.thetrustbank.dto.AccountInfo;
-import com.salafiaji.thetrustbank.dto.BankResponse;
-import com.salafiaji.thetrustbank.dto.EmailDetails;
-import com.salafiaji.thetrustbank.dto.UserRequest;
+import com.salafiaji.thetrustbank.dto.*;
 import com.salafiaji.thetrustbank.entity.Users;
 import com.salafiaji.thetrustbank.repository.UserRepository;
 import com.salafiaji.thetrustbank.utils.AccountUtils;
@@ -67,5 +64,38 @@ public class UserServiceImpl implements UserService{
                         .accountName(savedUser.getFirstName() + " " + savedUser.getLastName() + " " + savedUser.getOtherName())
                         .build())
                 .build();
+    }
+
+    @Override
+    public BankResponse balanceEnquiry(EnquiryRequest request) {
+        //Check if the provided account number exist in database
+        boolean isAccountExist = userRepository.existsByAccountNumber(request.getAccountNumber());
+        if (!isAccountExist) {
+            return BankResponse.builder()
+                    .responseCode(AccountUtils.ACCOUNT_NOT_EXIST_CODE)
+                    .responseMessage(AccountUtils.ACCOUNT_EXISTS_MESSAGE)
+                    .accountInfo(null)
+                    .build();
+        }
+        Users foundUser = userRepository.findByAccountNumber(request.getAccountNumber());
+        return BankResponse.builder()
+                .responseCode(AccountUtils.ACCOUNT_FOUND_CODE)
+                .responseMessage(AccountUtils.ACCOUNT_FOUND_SUCCESS)
+                .accountInfo(AccountInfo.builder()
+                        .accountBalance(foundUser.getAccountBalance())
+                        .accountNumber(request.getAccountNumber())
+                        .accountName(foundUser.getFirstName() + " " + foundUser.getLastName() + " " + foundUser.getOtherName())
+                        .build())
+                .build();
+    }
+
+    @Override
+    public String nameEnquiry(EnquiryRequest request) {
+        boolean isAccountExist = userRepository.existsByAccountNumber(request.getAccountNumber());
+        if (!isAccountExist) {
+           return AccountUtils.ACCOUNT_NOT_EXIST_MESSAGE;
+        }
+        Users foundUser = userRepository.findByAccountNumber(request.getAccountNumber());
+        return foundUser.getFirstName() + " " + foundUser.getLastName() + " " + foundUser.getOtherName();
     }
 }
