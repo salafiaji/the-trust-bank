@@ -1,14 +1,22 @@
 package com.salafiaji.thetrustbank.service.impl;
 
+import com.salafiaji.thetrustbank.config.JwtTokenProvider;
 import com.salafiaji.thetrustbank.dto.*;
+import com.salafiaji.thetrustbank.entity.Role;
 import com.salafiaji.thetrustbank.entity.Users;
 import com.salafiaji.thetrustbank.repository.UserRepository;
 import com.salafiaji.thetrustbank.utils.AccountUtils;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -21,6 +29,15 @@ public class UserServiceImpl implements UserService {
 
         @Autowired
         TransactionService transactionService;
+
+        @Autowired
+        PasswordEncoder passwordEncoder;
+
+        @Autowired
+        AuthenticationManager authenticationManager;
+
+        @Autowired
+        JwtTokenProvider jwtTokenProvider;
 
         @Override
         public BankResponse createAccount(UserRequest userRequest) {
@@ -47,9 +64,11 @@ public class UserServiceImpl implements UserService {
                                 .accountNumber(AccountUtils.generateAccountNumber())
                                 .accountBalance(BigDecimal.ZERO)
                                 .email(userRequest.getEmail())
+                                .password(passwordEncoder.encode(userRequest.getPassword()))
                                 .phoneNumber(userRequest.getPhoneNumber())
                                 .alternativePhoneNumber(userRequest.getAlternativePhoneNumber())
                                 .status("ACTIVE")
+                                .role(Role.valueOf("ROLE_ADMIN"))
                                 .build();
                 Users savedUser = userRepository.save(newUser);
                 // Send email Alert
@@ -73,6 +92,24 @@ public class UserServiceImpl implements UserService {
                                                                 + " " + savedUser.getOtherName())
                                                 .build())
                                 .build();
+        }
+
+        public BankResponse login(LoginDto loginDto){
+            Authentication authentication = null;
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword())
+            );
+
+            EmailDetails loginAlert = EmailDetails.builder()
+                    .subject("You're logged in!")
+                    .recipient(loginDto.getEmail())
+                    .messageBody("You logged into your account. If you did not initiate this request, please contact your bank")
+                    .build();
+            emailService.sendEmailAlert(loginAlert);
+            return BankResponse.builder()
+                    .responseCode("login success")
+                    .responseMessage(jwtTokenProvider.generateToken(authentication))
+                    .build();
         }
 
         @Override
@@ -269,5 +306,9 @@ public class UserServiceImpl implements UserService {
                                 .accountInfo(null)
                                 .build();
         }
+
+
+
+
 
 }
