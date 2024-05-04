@@ -146,6 +146,8 @@ public class UserServiceImpl implements UserService {
                 return foundUser.getFirstName() + " " + foundUser.getLastName() + " " + foundUser.getOtherName();
         }
 
+
+
         @Override
         public BankResponse creditAccount(CreditDebitRequest request) {
                 // checking if the account exist
